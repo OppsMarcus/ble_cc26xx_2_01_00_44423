@@ -78,6 +78,9 @@
 
 #include <ti/drivers/lcd/LCDDogm1286.h>
 
+#include "movement.h"
+#define SENSOR_DATA_LEN 18
+
 /*********************************************************************
  * CONSTANTS
  */
@@ -142,6 +145,16 @@
 #define SBP_PERIODIC_EVT                      0x0004
 #define SBP_CONN_EVT_END_EVT                  0x0008
 
+
+
+// Device information parameters
+static const uint8_t devInfoModelNumber[] = "CC2650 PostureTag  ";
+static const uint8_t devInfoNA[] =          "ASF.";
+static const uint8_t devInfoFirmwareRev[] = "1.20 ";
+static const uint8_t devInfoSoftwareRev[] = "0.1.0";
+static const uint8_t devInfoMfrName[] =     "TooloomTechnologies";
+static const uint8_t devInfoHardwareRev[] = "PCB 1.2/1.3";
+
 /*********************************************************************
  * TYPEDEFS
  */
@@ -194,27 +207,17 @@ Char sbpTaskStack[SBP_TASK_STACK_SIZE];
 static uint8_t scanRspData[] =
 {
   // complete name
-  0x14,   // length of this data
+  0x0a,   // length of this data
   GAP_ADTYPE_LOCAL_NAME_COMPLETE,
-  0x53,   // 'S'
-  0x69,   // 'i'
-  0x6d,   // 'm'
-  0x70,   // 'p'
-  0x6c,   // 'l'
-  0x65,   // 'e'
-  0x42,   // 'B'
-  0x4c,   // 'L'
-  0x45,   // 'E'
-  0x50,   // 'P'
-  0x65,   // 'e'
-  0x72,   // 'r'
-  0x69,   // 'i'
-  0x70,   // 'p'
-  0x68,   // 'h'
-  0x65,   // 'e'
-  0x72,   // 'r'
-  0x61,   // 'a'
-  0x6c,   // 'l'
+   'S',   // 'S'
+  'i',
+  'm',
+  'p',
+  'l',
+  'e',
+  't',
+  'o',
+  'n',
 
   // connection interval range
   0x05,   // length of this data
@@ -449,7 +452,8 @@ static void SimpleBLEPeripheral_init(void)
 
   // Setup the GAP Bond Manager
   {
-    uint32_t passkey = 0; // passkey "000000"
+//    uint32_t passkey = 0; // passkey "000000"
+    uint32_t passkey = 1234; // passkey "1234"
     uint8_t pairMode = GAPBOND_PAIRING_MODE_WAIT_FOR_REQ;
     uint8_t mitm = TRUE;
     uint8_t ioCap = GAPBOND_IO_CAP_DISPLAY_ONLY;
@@ -486,22 +490,24 @@ static void SimpleBLEPeripheral_init(void)
 #ifndef FEATURE_OAD
   // Setup the SimpleProfile Characteristic Values
   {
-    uint8_t charValue1 = 1;
-    uint8_t charValue2 = 2;
-    uint8_t charValue3 = 3;
-    uint8_t charValue4 = 4;
-    uint8_t charValue5[SIMPLEPROFILE_CHAR5_LEN] = { 1, 2, 3, 4, 5 };
-
-    SimpleProfile_SetParameter(SIMPLEPROFILE_CHAR1, sizeof(uint8_t),
-                               &charValue1);
-    SimpleProfile_SetParameter(SIMPLEPROFILE_CHAR2, sizeof(uint8_t),
-                               &charValue2);
-    SimpleProfile_SetParameter(SIMPLEPROFILE_CHAR3, sizeof(uint8_t),
-                               &charValue3);
-    SimpleProfile_SetParameter(SIMPLEPROFILE_CHAR4, sizeof(uint8_t),
-                               &charValue4);
-    SimpleProfile_SetParameter(SIMPLEPROFILE_CHAR5, SIMPLEPROFILE_CHAR5_LEN,
-                               charValue5);
+    uint16_t intAccX = 1;
+    uint16_t intAccY = 2;
+    uint16_t intAccZ = 3;
+    uint8_t charValue4[SENSOR_DATA_LEN] = { 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0
+          };
+//    uint8_t charValue5[SIMPLEPROFILE_CHAR5_LEN] = { 1, 2, 3, 4, 5 };
+//
+    SimpleProfile_SetParameter(SIMPLEPROFILE_CHAR1, sizeof(uint16_t),
+                               &intAccX);
+    SimpleProfile_SetParameter(SIMPLEPROFILE_CHAR2, sizeof(uint16_t),
+                               &intAccY);
+    SimpleProfile_SetParameter(SIMPLEPROFILE_CHAR3, sizeof(uint16_t),
+                               &intAccZ);
+    SimpleProfile_SetParameter(SIMPLEPROFILE_CHAR4, SENSOR_DATA_LEN,
+                               charValue4);
+//    SimpleProfile_SetParameter(SIMPLEPROFILE_CHAR5, SIMPLEPROFILE_CHAR5_LEN,
+//                               charValue5);
   }
 
   // Register callback with SimpleGATTprofile
@@ -888,6 +894,20 @@ static void SimpleBLEPeripheral_processStateChangeEvt(gaprole_States_t newState)
 
         DevInfo_SetParameter(DEVINFO_SYSTEM_ID, DEVINFO_SYSTEM_ID_LEN, systemId);
 
+        DevInfo_SetParameter(DEVINFO_MODEL_NUMBER, sizeof(devInfoModelNumber),
+                             (void*)devInfoModelNumber);
+        DevInfo_SetParameter(DEVINFO_SERIAL_NUMBER, sizeof(devInfoNA),
+                             (void*)devInfoNA);
+        DevInfo_SetParameter(DEVINFO_SOFTWARE_REV, sizeof(devInfoSoftwareRev),
+                             (void*)devInfoSoftwareRev);
+        DevInfo_SetParameter(DEVINFO_FIRMWARE_REV, sizeof(devInfoFirmwareRev),
+                             (void*)devInfoFirmwareRev);
+        DevInfo_SetParameter(DEVINFO_HARDWARE_REV, sizeof(devInfoHardwareRev),
+                             (void*)devInfoHardwareRev);
+        DevInfo_SetParameter(DEVINFO_MANUFACTURER_NAME, sizeof(devInfoMfrName),
+                             (void*)devInfoMfrName);
+
+
         // Display device address
         LCD_WRITE_STRING(Util_convertBdAddr2Str(ownAddress), LCD_PAGE1);
         LCD_WRITE_STRING("Initialized", LCD_PAGE2);
@@ -1040,17 +1060,17 @@ static void SimpleBLEPeripheral_processCharValueChangeEvt(uint8_t paramID)
 
   switch(paramID)
   {
-    case SIMPLEPROFILE_CHAR1:
-      SimpleProfile_GetParameter(SIMPLEPROFILE_CHAR1, &newValue);
-
-      LCD_WRITE_STRING_VALUE("Char 1:", (uint16_t)newValue, 10, LCD_PAGE4);
-      break;
-
-    case SIMPLEPROFILE_CHAR3:
-      SimpleProfile_GetParameter(SIMPLEPROFILE_CHAR3, &newValue);
-
-      LCD_WRITE_STRING_VALUE("Char 3:", (uint16_t)newValue, 10, LCD_PAGE4);
-      break;
+//    case SIMPLEPROFILE_CHAR1:
+//      SimpleProfile_GetParameter(SIMPLEPROFILE_CHAR1, &newValue);
+//
+//      LCD_WRITE_STRING_VALUE("Char 1:", (uint16_t)newValue, 10, LCD_PAGE4);
+//      break;
+//
+//    case SIMPLEPROFILE_CHAR3:
+//      SimpleProfile_GetParameter(SIMPLEPROFILE_CHAR3, &newValue);
+//
+//      LCD_WRITE_STRING_VALUE("Char 3:", (uint16_t)newValue, 10, LCD_PAGE4);
+//      break;
 
     default:
       // should not reach here!
@@ -1072,21 +1092,39 @@ static void SimpleBLEPeripheral_processCharValueChangeEvt(uint8_t paramID)
  *
  * @return  None.
  */
+
 static void SimpleBLEPeripheral_performPeriodicTask(void)
 {
 #ifndef FEATURE_OAD
-  uint8_t valueToCopy;
+  uint16_t valueToCopy;
+  uint8_t sensorData[18];
 
-  // Call to retrieve the value of the third characteristic in the profile
-  if (SimpleProfile_GetParameter(SIMPLEPROFILE_CHAR3, &valueToCopy) == SUCCESS)
-  {
     // Call to set that value of the fourth characteristic in the profile.
     // Note that if notifications of the fourth characteristic have been
     // enabled by a GATT client device, then a notification will be sent
     // every time this function is called.
-    SimpleProfile_SetParameter(SIMPLEPROFILE_CHAR4, sizeof(uint8_t),
-                               &valueToCopy);
-  }
+
+  get_movementData(sensorData);
+  valueToCopy = sensorData[1]<<8;
+  valueToCopy += sensorData[0];
+
+  SimpleProfile_SetParameter(SIMPLEPROFILE_CHAR1, sizeof(uint16_t),
+							   &valueToCopy);
+
+  valueToCopy = sensorData[3]<<8;
+  valueToCopy += sensorData[2];
+
+  SimpleProfile_SetParameter(SIMPLEPROFILE_CHAR2, sizeof(uint16_t),
+							   &valueToCopy);
+
+  valueToCopy = sensorData[5]<<8;
+  valueToCopy += sensorData[4];
+
+  SimpleProfile_SetParameter(SIMPLEPROFILE_CHAR3, sizeof(uint16_t),
+							   &valueToCopy);
+
+  SimpleProfile_SetParameter(SIMPLEPROFILE_CHAR4, SENSOR_DATA_LEN, sensorData);
+
 #endif //!FEATURE_OAD
 }
 

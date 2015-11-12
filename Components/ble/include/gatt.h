@@ -268,7 +268,7 @@ typedef struct attAttribute_t
   gattAttrType_t type; //!< Attribute type (2 or 16 octet UUIDs)
   uint8 permissions;   //!< Attribute permissions
   uint16 handle;       //!< Attribute handle - assigned internally by attribute server
-  uint8* const pValue; //!< Attribute value - encoding of the octet array is defined in 
+  uint8* const pValue; //!< Attribute value - encoding of the octet array is defined in
                        //!< the applicable profile. The maximum length of an attribute 
                        //!< value shall be 512 octets.
 } gattAttribute_t;

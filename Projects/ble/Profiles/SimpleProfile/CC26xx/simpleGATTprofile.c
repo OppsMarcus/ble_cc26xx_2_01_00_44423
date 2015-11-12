@@ -62,6 +62,7 @@
  */
 
 #define SERVAPP_NUM_ATTR_SUPPORTED        17
+#define SENSOR_DATA_LEN         		  18
 
 /*********************************************************************
  * TYPEDEFS
@@ -127,42 +128,43 @@ static simpleProfileCBs_t *simpleProfile_AppCBs = NULL;
 // Simple Profile Service attribute
 static CONST gattAttrType_t simpleProfileService = { ATT_BT_UUID_SIZE, simpleProfileServUUID };
 
-
 // Simple Profile Characteristic 1 Properties
-static uint8 simpleProfileChar1Props = GATT_PROP_READ | GATT_PROP_WRITE;
+static uint8 simpleProfileChar1Props = GATT_PROP_READ;
 
 // Characteristic 1 Value
-static uint8 simpleProfileChar1 = 0;
+static uint16 simpleProfileChar1 = 0;
 
 // Simple Profile Characteristic 1 User Description
-static uint8 simpleProfileChar1UserDesp[17] = "Characteristic 1";
+static uint8 simpleProfileChar1UserDesp[16] = "Accelerometer X";
 
 
 // Simple Profile Characteristic 2 Properties
 static uint8 simpleProfileChar2Props = GATT_PROP_READ;
 
 // Characteristic 2 Value
-static uint8 simpleProfileChar2 = 0;
+static uint16 simpleProfileChar2 = 0;
 
 // Simple Profile Characteristic 2 User Description
-static uint8 simpleProfileChar2UserDesp[17] = "Characteristic 2";
+static uint8 simpleProfileChar2UserDesp[16] = "Accelerometer Y";
 
 
 // Simple Profile Characteristic 3 Properties
-static uint8 simpleProfileChar3Props = GATT_PROP_WRITE;
+static uint8 simpleProfileChar3Props = GATT_PROP_READ;
 
 // Characteristic 3 Value
-static uint8 simpleProfileChar3 = 0;
+static uint16 simpleProfileChar3 = 0;
 
 // Simple Profile Characteristic 3 User Description
-static uint8 simpleProfileChar3UserDesp[17] = "Characteristic 3";
+static uint8 simpleProfileChar3UserDesp[16] = "Accelerometer Z";
 
 
 // Simple Profile Characteristic 4 Properties
 static uint8 simpleProfileChar4Props = GATT_PROP_NOTIFY;
 
 // Characteristic 4 Value
-static uint8 simpleProfileChar4 = 0;
+static uint8 simpleProfileChar4[SENSOR_DATA_LEN]= { 0, 1, 2, 3, 4, 5, 6, 7, 8,
+        9, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10, 0x11
+      };
 
 // Simple Profile Characteristic 4 Configuration Each client has its own
 // instantiation of the Client Characteristic Configuration. Reads of the
@@ -208,9 +210,9 @@ static gattAttribute_t simpleProfileAttrTbl[SERVAPP_NUM_ATTR_SUPPORTED] =
       // Characteristic Value 1
       { 
         { ATT_BT_UUID_SIZE, simpleProfilechar1UUID },
-        GATT_PERMIT_READ | GATT_PERMIT_WRITE, 
+        GATT_PERMIT_READ,
         0, 
-        &simpleProfileChar1 
+		(uint8 *)&simpleProfileChar1
       },
 
       // Characteristic 1 User Description
@@ -234,7 +236,7 @@ static gattAttribute_t simpleProfileAttrTbl[SERVAPP_NUM_ATTR_SUPPORTED] =
         { ATT_BT_UUID_SIZE, simpleProfilechar2UUID },
         GATT_PERMIT_READ, 
         0, 
-        &simpleProfileChar2 
+		(uint8 *)&simpleProfileChar2
       },
 
       // Characteristic 2 User Description
@@ -256,9 +258,9 @@ static gattAttribute_t simpleProfileAttrTbl[SERVAPP_NUM_ATTR_SUPPORTED] =
       // Characteristic Value 3
       { 
         { ATT_BT_UUID_SIZE, simpleProfilechar3UUID },
-        GATT_PERMIT_WRITE, 
+        GATT_PERMIT_READ,
         0, 
-        &simpleProfileChar3 
+		(uint8 *)&simpleProfileChar3
       },
 
       // Characteristic 3 User Description
@@ -282,7 +284,7 @@ static gattAttribute_t simpleProfileAttrTbl[SERVAPP_NUM_ATTR_SUPPORTED] =
         { ATT_BT_UUID_SIZE, simpleProfilechar4UUID },
         0, 
         0, 
-        &simpleProfileChar4 
+        simpleProfileChar4
       },
 
       // Characteristic 4 configuration
@@ -440,9 +442,9 @@ bStatus_t SimpleProfile_SetParameter( uint8 param, uint8 len, void *value )
   switch ( param )
   {
     case SIMPLEPROFILE_CHAR1:
-      if ( len == sizeof ( uint8 ) ) 
+      if ( len == sizeof ( uint16 ) )
       {
-        simpleProfileChar1 = *((uint8*)value);
+        simpleProfileChar1 = *((uint16*)value);
       }
       else
       {
@@ -451,9 +453,9 @@ bStatus_t SimpleProfile_SetParameter( uint8 param, uint8 len, void *value )
       break;
 
     case SIMPLEPROFILE_CHAR2:
-      if ( len == sizeof ( uint8 ) ) 
+      if ( len == sizeof ( uint16 ) )
       {
-        simpleProfileChar2 = *((uint8*)value);
+        simpleProfileChar2 = *((uint16*)value);
       }
       else
       {
@@ -462,9 +464,9 @@ bStatus_t SimpleProfile_SetParameter( uint8 param, uint8 len, void *value )
       break;
 
     case SIMPLEPROFILE_CHAR3:
-      if ( len == sizeof ( uint8 ) ) 
+      if ( len == sizeof ( uint16 ) )
       {
-        simpleProfileChar3 = *((uint8*)value);
+        simpleProfileChar3 = *((uint16*)value);
       }
       else
       {
@@ -472,15 +474,34 @@ bStatus_t SimpleProfile_SetParameter( uint8 param, uint8 len, void *value )
       }
       break;
 
+//    case SENSOR_DATA:
+//    if (len == SENSOR_DATA_LEN)
+//    {
+//      memcpy(sensorData, value, SENSOR_DATA_LEN);
+//      // See if Notification has been enabled
+//      ret = GATTServApp_ProcessCharCfg(sensorDataConfig, sensorData, FALSE,
+//                                 sensorAttrTable, GATT_NUM_ATTRS(sensorAttrTable),
+//                                 INVALID_TASK_ID, sensor_ReadAttrCB);
+//    }
+//    else
+//    {
+//      ret = bleInvalidRange;
+//    }
+//    break;
+
     case SIMPLEPROFILE_CHAR4:
-      if ( len == sizeof ( uint8 ) ) 
+      if ( len == SENSOR_DATA_LEN )
       {
-        simpleProfileChar4 = *((uint8*)value);
-        
+//        simpleProfileChar4 = *((uint8*)value);
+        memcpy(simpleProfileChar4, value, SENSOR_DATA_LEN);
         // See if Notification has been enabled
-        GATTServApp_ProcessCharCfg( simpleProfileChar4Config, &simpleProfileChar4, FALSE,
-                                    simpleProfileAttrTbl, GATT_NUM_ATTRS( simpleProfileAttrTbl ),
-                                    INVALID_TASK_ID, simpleProfile_ReadAttrCB );
+        GATTServApp_ProcessCharCfg(	simpleProfileChar4Config, simpleProfileChar4, FALSE,
+        							simpleProfileAttrTbl, GATT_NUM_ATTRS(simpleProfileAttrTbl),
+                                 INVALID_TASK_ID, simpleProfile_ReadAttrCB);
+        
+//        GATTServApp_ProcessCharCfg( simpleProfileChar4Config, &simpleProfileChar4, FALSE,
+//                                    simpleProfileAttrTbl, GATT_NUM_ATTRS( simpleProfileAttrTbl ),
+//                                    INVALID_TASK_ID, simpleProfile_ReadAttrCB );
       }
       else
       {
@@ -526,19 +547,21 @@ bStatus_t SimpleProfile_GetParameter( uint8 param, void *value )
   switch ( param )
   {
     case SIMPLEPROFILE_CHAR1:
-      *((uint8*)value) = simpleProfileChar1;
+      *((uint16*)value) = simpleProfileChar1;
       break;
 
     case SIMPLEPROFILE_CHAR2:
-      *((uint8*)value) = simpleProfileChar2;
+      *((uint16*)value) = simpleProfileChar2;
       break;      
 
     case SIMPLEPROFILE_CHAR3:
-      *((uint8*)value) = simpleProfileChar3;
+      *((uint16*)value) = simpleProfileChar3;
       break;  
 
     case SIMPLEPROFILE_CHAR4:
-      *((uint8*)value) = simpleProfileChar4;
+//      *((uint8*)value) = simpleProfileChar4;
+        memcpy(value, simpleProfileChar4, SENSOR_DATA_LEN);
+
       break;
 
     case SIMPLEPROFILE_CHAR5:
@@ -598,16 +621,20 @@ static bStatus_t simpleProfile_ReadAttrCB(uint16_t connHandle,
       // No need for "GATT_SERVICE_UUID" or "GATT_CLIENT_CHAR_CFG_UUID" cases;
       // gattserverapp handles those reads
 
-      // characteristics 1 and 2 have read permissions
-      // characteritisc 3 does not have read permissions; therefore it is not
-      //   included here
+      // characteristics 1, 2 and 3 have read permissions
       // characteristic 4 does not have read permissions, but because it
       //   can be sent as a notification, it is included here
       case SIMPLEPROFILE_CHAR1_UUID:
       case SIMPLEPROFILE_CHAR2_UUID:
+      case SIMPLEPROFILE_CHAR3_UUID:
+          *pLen = 2;
+          VOID memcpy( pValue, pAttr->pValue, 2 );
+//          pValue[0] = *pAttr->pValue;
+          break;
       case SIMPLEPROFILE_CHAR4_UUID:
-        *pLen = 1;
-        pValue[0] = *pAttr->pValue;
+        *pLen = SENSOR_DATA_LEN;
+        memcpy(pValue, pAttr->pValue, SENSOR_DATA_LEN);
+//        pValue[0] = *pAttr->pValue;
         break;
 
       case SIMPLEPROFILE_CHAR5_UUID:
@@ -690,7 +717,7 @@ static bStatus_t simpleProfile_WriteAttrCB(uint16_t connHandle,
           uint8 *pCurValue = (uint8 *)pAttr->pValue;        
           *pCurValue = pValue[0];
 
-          if( pAttr->pValue == &simpleProfileChar1 )
+          if( pAttr->pValue == (uint8 *)&simpleProfileChar1 )
           {
             notifyApp = SIMPLEPROFILE_CHAR1;        
           }
