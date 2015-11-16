@@ -89,7 +89,7 @@ typedef int skipLoops_t;
 skipLoops_t scaleDownAngleTime = 0;
 skipLoops_t scaleDownShakeTime = 0;
 
-PIN_Handle pinHandle;
+static PIN_Handle pinHandleA;
 // UART
 //UART_Handle handle;
 //UART_Params params;
@@ -137,12 +137,12 @@ void Movement_createTask(void)
 
 void led_on(int16_t led)
 {
-    PIN_setOutputValue(pinHandle, led, 1);
+    PIN_setOutputValue(pinHandleA, led, 1);
 }
 
 void led_off(int16_t led)
 {
-    PIN_setOutputValue(pinHandle, led, 0);
+    PIN_setOutputValue(pinHandleA, led, 0);
 }
 
 //void UART_init_non_default()
